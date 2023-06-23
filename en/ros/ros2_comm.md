@@ -425,6 +425,22 @@ Similarly to vectors, also quanternions representing the attitude of the vehicle
 
 [PX4/px4_ros_com](https://github.com/PX4/px4_ros_com) provides the shared library [frame_transforms](https://github.com/PX4/px4_ros_com/blob/main/include/px4_ros_com/frame_transforms.h) to easily perform such conversions.
 
+### ROS, Gazebo and PX4 time synchronization
+
+By default, time synchronization between ROS 2 and PX4 is automatically managed by the [uXRCE-DDS middleware](https://micro-xrce-dds.docs.eprosima.com/en/latest/time_sync.html).
+In real applications, where the PX4 runs on a flight controller board and the ROS 2 applications run on a companion computer or even somewhere else in the ROS network, this is the desired behavior.
+However, in a combined ROS + Gazebo + PX4 simulation, PX4 uses the Gazebo `/clock` as time source. This clock is always slightly off-sync w.r.t. the OS clock (the real time factor is never exactly one) but can even run much faster or much slower depending on the user preferences.
+It is possible to use the Gazebo clock as ROS time source, in this way Gazebo will act as time synchronizer for both ROS and PX4.
+The procedure requires to:
+
+- Directly bridge ROS and Gazebo using [ros_gz](https://github.com/gazebosim/ros_gz) and the [ros_gz_bridge](https://github.com/gazebosim/ros_gz) package.
+- Bridge the Gazebo `/clock` topic over ROS
+  ```sh
+  ros2 run ros_gz_bridge parameter_bridge /clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock
+  ```
+- Run all your nodes with the parameter `use_sim_time` set to `true` (see [ROS clock and Time design](https://design.ros2.org/articles/clock_and_time.html)).
+
+On the PX4 side, you are only required to stop the uXRCE-DDS time synchronization, setting to false the parameter [UXRCE_DDS_SYNCT](../advanced_config/parameter_reference.md#UXRCE_DDS_SYNCT).
 
 ## ROS 2 Example Applications
 
